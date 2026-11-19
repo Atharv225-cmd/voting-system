@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureVote - E-Voting Portal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-check-to-slot"></i></div>
+            <span>SecureVote</span>
+        </a>
+        <div class="nav-links">
+            <div id="nav-user-info" style="display: none;">
+                <div class="user-badge">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span id="nav-user-name">User</span>
+                    <span id="nav-user-role" class="role-pill voter">Voter</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="openProfileModal()">
+                    <i class="fa-solid fa-id-card"></i> Profile
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="handleLogout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+            <div id="nav-guest-info">
+                <button class="btn btn-secondary btn-sm" onclick="openLoginModal()">Login</button>
+                <button class="btn btn-primary btn-sm" onclick="openSignupModal()">Register</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        
+        <!-- Hero Header -->
+        <section class="hero">
+            <h1>National Digital Voting Platform</h1>
+            <p>Empowering citizens with transparent, secure, and instant voting. Cast your vote with confidence.</p>
+        </section>
+
+        <!-- Dashboard Layout -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Column: Candidates & Voting -->
+            <div class="main-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-users" style="color: var(--primary);"></i>
+                            Official Candidates
+                        </div>
+                        <div id="admin-action-bar" style="display: none;">
+                            <button class="btn btn-primary btn-sm" onclick="openCandidateModal()">
+                                <i class="fa-solid fa-plus"></i> Add Candidate
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Candidates Grid -->
+                    <div id="candidates-container" class="candidate-grid">
+                        <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">
+                            Loading candidates...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Live Leaderboard -->
+            <div class="sidebar">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-chart-column" style="color: var(--accent-cyan);"></i>
+                            <span id="leaderboard-title">Election Results</span>
+                        </div>
+                        <div style="display:flex; gap: 0.5rem; align-items: center;">
+                            <!-- Admin-only Declare Result button -->
+                            <button id="declare-result-btn" style="display:none;" class="btn btn-sm" onclick="toggleDeclareResult()">
+                                <i class="fa-solid fa-flag-checkered"></i> <span id="declare-btn-text">Declare Result</span>
+                            </button>
+                            <button id="refresh-tally-btn" style="display:none;" class="btn btn-secondary btn-sm" onclick="loadVoteCounts()">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="leaderboard-container" class="leaderboard-list">
+                        <div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Modals -->
+
+    <!-- 1. Login Modal -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Login to Vote</h3>
+                <button class="modal-close" onclick="closeModal('login-modal')">&times;</button>
+            </div>
+            <form onsubmit="handleLoginSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label">Aadhar Number (or Email)</label>
+                    <input type="text" id="login-identifier" class="form-control" placeholder="Enter Aadhar or Email" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="login-password" class="form-control" placeholder="Enter Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Signup Modal -->
+    <div id="signup-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 540px;">
+            <div class="modal-header">
+                <h3>Voter Registration</h3>
+                <button class="modal-close" onclick="closeModal('signup-modal')">&times;</button>
+            </div>
+            <form onsubmit="handleSignupSubmit(event)">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="signup-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Age (Min 18)</label>
+                        <input type="number" id="signup-age" class="form-control" min="18" required>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="signup-email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mobile Number</label>
+                        <input type="text" id="signup-mobile" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Aadhar Card Number</label>
+                    <input type="text" id="signup-aadhar" class="form-control" placeholder="12-digit Aadhar number" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <input type="text" id="signup-address" class="form-control" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="signup-password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Account Role</label>
+                        <select id="signup-role" class="form-control">
+                            <option value="voter">Voter</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Complete Registration</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Candidate Modal (Add/Edit) -->
+    <div id="candidate-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="candidate-modal-title">Add New Candidate</h3>
+                <button class="modal-close" onclick="closeModal('candidate-modal')">&times;</button>
+            </div>
+            <form onsubmit="handleCandidateSubmit(event)">
+                <input type="hidden" id="candidate-edit-id">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="candidate-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Political Party</label>
+                    <input type="text" id="candidate-party" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Age</label>
+                    <input type="number" id="candidate-age" class="form-control" min="25" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Candidate</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Profile & Password Modal -->
+    <div id="profile-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>My Profile</h3>
+                <button class="modal-close" onclick="closeModal('profile-modal')">&times;</button>
+            </div>
+            <div id="profile-details" style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.03); padding: 1rem; border-radius: var(--radius-md);">
+                <!-- Loaded dynamically -->
+            </div>
+
+            <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Change Password</h4>
+            <form onsubmit="handlePasswordChange(event)">
+                <div class="form-group">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" id="profile-current-pass" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" id="profile-new-pass" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-secondary" style="width: 100%;">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Client-Side Script -->
+    <script>
+        let currentUser = null;
+        let candidatesList = [];
+        let electionStatus = { resultDeclared: false, declaredAt: null };
+
+        // On Load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthStatus();
+            loadCandidates();
+            loadElectionStatus();
+        });
+
+        // Toast Helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        // Modal Helpers
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function openLoginModal() { openModal('login-modal'); }
+        function openSignupModal() { openModal('signup-modal'); }
+
+        // Check Logged in User Profile
+        async function checkAuthStatus() {
+            try {
+                const res = await fetch('/profile');
+                if (res.ok) {
+                    const data = await res.json();
+                    currentUser = data.user;
+                    renderUserNav();
+                } else {
+                    currentUser = null;
+                    renderUserNav();
+                }
+            } catch (err) {
+                currentUser = null;
+                renderUserNav();
+            }
+        }
+
+        function renderUserNav() {
+            const guestNav = document.getElementById('nav-guest-info');
+            const userNav = document.getElementById('nav-user-info');
+            const adminBar = document.getElementById('admin-action-bar');
+            const declareBtn = document.getElementById('declare-result-btn');
+            const refreshBtn = document.getElementById('refresh-tally-btn');
+
+            if (currentUser) {
+                guestNav.style.display = 'none';
+                userNav.style.display = 'flex';
+                document.getElementById('nav-user-name').innerText = currentUser.fullName;
+                
+                const roleEl = document.getElementById('nav-user-role');
+                roleEl.innerText = currentUser.role;
+                roleEl.className = `role-pill ${currentUser.role}`;
+
+                if (currentUser.role === 'admin') {
+                    adminBar.style.display = 'block';
+                    declareBtn.style.display = 'inline-flex';
+                    refreshBtn.style.display = 'inline-flex';
+                } else {
+                    adminBar.style.display = 'none';
+                    declareBtn.style.display = 'none';
+                    refreshBtn.style.display = 'none';
+                }
+            } else {
+                guestNav.style.display = 'flex';
+                userNav.style.display = 'none';
+                adminBar.style.display = 'none';
+                declareBtn.style.display = 'none';
+                refreshBtn.style.display = 'none';
+            }
+            renderCandidates();
+            renderLeaderboardState();
+        }
+
+        // Load Candidates (/candidates)
+        async function loadCandidates() {
+            try {
+                const res = await fetch('/candidates');
+                if (res.ok) {
+                    candidatesList = await res.json();
+                    renderCandidates();
+                }
+            } catch (err) {
+                console.error('Failed to load candidates', err);
+            }
+        }
+
+        // Render Candidates Grid
+        function renderCandidates() {
+            const container = document.getElementById('candidates-container');
+            if (!candidatesList.length) {
+                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">No candidates available yet.</div>`;
+                return;
+            }
+
+            container.innerHTML = candidatesList.map(c => {
+                const initials = c.fullName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
+                let voteBtn = '';
+
+                if (currentUser) {
+                    if (currentUser.role === 'admin') {
+                        voteBtn = `
+                            <button class="btn btn-secondary btn-sm" onclick="editCandidate('${c._id}')"><i class="fa-solid fa-pen"></i></button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteCandidate('${c._id}')"><i class="fa-solid fa-trash"></i></button>
+                        `;
+                    } else if (currentUser.isVoted) {
+                        voteBtn = `<button class="btn btn-secondary btn-sm" disabled><i class="fa-solid fa-check"></i> Voted</button>`;
+                    } else {
+                        voteBtn = `<button class="btn btn-success btn-sm" onclick="castVote('${c._id}')"><i class="fa-solid fa-check-to-slot"></i> Vote</button>`;
+                    }
+                } else {
+                    voteBtn = `<button class="btn btn-primary btn-sm" onclick="openLoginModal()"><i class="fa-solid fa-lock"></i> Login to Vote</button>`;
+                }
+
+                return `
+                    <div class="candidate-card">
+                        <div class="candidate-header">
+                            <div>
+                                <div class="candidate-name">${c.fullName}</div>
+                                <span class="candidate-party">${c.party}</span>
+                            </div>
+                            <div class="candidate-avatar">${initials}</div>
+                        </div>
+                        <div class="candidate-age"><i class="fa-solid fa-user"></i> Age: ${c.age} years</div>
+                        <div class="candidate-actions">
+                            ${voteBtn}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load Election Status (/election/status)
+        async function loadElectionStatus() {
+            try {
+                const res = await fetch('/election/status');
+                if (res.ok) {
+                    electionStatus = await res.json();
+                }
+            } catch (err) {
+                console.error('Failed to load election status', err);
+            }
+            renderLeaderboardState();
+        }
+
+        // Render leaderboard section based on election status
+        function renderLeaderboardState() {
+            const declareBtn = document.getElementById('declare-result-btn');
+            const declareBtnText = document.getElementById('declare-btn-text');
+            const leaderboardTitle = document.getElementById('leaderboard-title');
+
+            if (electionStatus.resultDeclared) {
+                leaderboardTitle.textContent = '🏆 Official Results';
+                if (declareBtnText) declareBtnText.textContent = 'Revoke Declaration';
+                if (declareBtn) {
+                    declareBtn.className = 'btn btn-danger btn-sm';
+                }
+                loadVoteCounts();
+            } else {
+                leaderboardTitle.textContent = 'Election Results';
+                if (declareBtnText) declareBtnText.textContent = 'Declare Result';
+                if (declareBtn) {
+                    declareBtn.className = 'btn btn-success btn-sm';
+                }
+                renderLockedLeaderboard();
+            }
+        }
+
+        // Show locked state for non-admins before result is declared
+        function renderLockedLeaderboard() {
+            // Admins can always see the live tally
+            if (currentUser && currentUser.role === 'admin') {
+                loadVoteCounts();
+                return;
+            }
+            const container = document.getElementById('leaderboard-container');
+            container.innerHTML = `
+                <div style="text-align:center; padding: 2rem 1rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">Results Not Declared Yet</div>
+                    <div style="font-size: 0.875rem; color: var(--text-muted);">The administrator will reveal the results once voting concludes.</div>
+                </div>
+            `;
+        }
+
+        // Load Live Vote Leaderboard (/vote/count) — admin-visible or post-declaration
+        async function loadVoteCounts() {
+            try {
+                const res = await fetch('/vote/count');
+                if (res.ok) {
+                    const data = await res.json();
+                    renderLeaderboard(data);
+                }
+            } catch (err) {
+                console.error('Failed to load vote count', err);
+            }
+        }
+
+        function renderLeaderboard(data) {
+            const container = document.getElementById('leaderboard-container');
+            const totalVotes = data.reduce((acc, curr) => acc + curr.count, 0);
+
+            if (!data.length) {
+                container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No vote records found.</div>`;
+                return;
+            }
+
+            // Find max votes for winner highlight
+            const maxVotes = Math.max(...data.map(d => d.count));
+
+            container.innerHTML = data.map((item, idx) => {
+                const percent = totalVotes > 0 ? Math.round((item.count / totalVotes) * 100) : 0;
+                const isWinner = electionStatus.resultDeclared && item.count === maxVotes && maxVotes > 0;
+                return `
+                    <div class="leaderboard-item${isWinner ? ' winner-item' : ''}" style="animation-delay: ${idx * 0.08}s">
+                        <div class="item-top">
+                            <div>
+                                ${isWinner ? '<span style="font-size:1rem; margin-right:0.3rem;">🏆</span>' : ''}
+                                <span class="item-party">${item.party}</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">(${item.name})</span>
+                            </div>
+                            <span class="item-votes">${item.count} votes</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Admin: Toggle result declaration
+        async function toggleDeclareResult() {
+            const action = electionStatus.resultDeclared ? 'revoke the result declaration' : 'declare the official result';
+            if (!confirm(`Are you sure you want to ${action}?`)) return;
+            try {
+                const res = await fetch('/declare-result', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    electionStatus.resultDeclared = data.resultDeclared;
+                    electionStatus.declaredAt = data.declaredAt;
+                    showToast(data.message, 'success');
+                    renderLeaderboardState();
+                } else {
+                    showToast(data.error || 'Failed to toggle result declaration', 'error');
+                }
+            } catch (err) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        // Cast Vote (POST /vote/:candidateId)
+        async function castVote(candidateId) {
+            try {
+                const res = await fetch(`/vote/${candidateId}`, { method: 'POST' });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast(data.message || 'Vote submitted successfully!');
+                    if (currentUser) currentUser.isVoted = true;
+                    renderCandidates();
+                    loadVoteCounts();
+                } else {
+                    showToast(data.message || data.error || 'Failed to submit vote', 'error');
+                }
+            } catch (err) {
+                showToast('Network error while voting', 'error');
+            }
+        }
+
+        // Login Handler (POST /login)
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('login-identifier').value;
+            const password = document.getElementById('login-password').value;
+
+            const isEmail = identifier.includes('@');
+            const payload = { password };
+            if (isEmail) payload.email = identifier;
+            else payload.AadharNumber = identifier;
+
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast('Login successful!');
+                    closeModal('login-modal');
+                    currentUser = data.user;
+                    renderUserNav();
+                    loadCandidates();
+                } else {
+                    showToast(data.error || 'Login failed', 'error');
+                }
+            } catch (err) {
+                showToast('Login request failed', 'error');
+            }
+        }
+
+        // Signup Handler (POST /signup)
+        async function handleSignupSubmit(e) {
+            e.preventDefault();
+            const payload = {
+                fullName: document.getElementById('signup-name').value,
+                age: Number(document.getElementById('signup-age').value),
+                email: document.getElementById('signup-email').value,
+                mobileNumber: document.getElementById('signup-mobile').value,
+                AadharNumber: document.getElementById('signup-aadhar').value,
+                Address: document.getElementById('signup-address').value,
+                password: document.getElementById('signup-password').value,
+                role: document.getElementById('signup-role').value
+            };
+
+            try {
+                const res = await fetch('/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast('Registration successful!');
+                    closeModal('signup-modal');
+                    currentUser = data.user;
+                    renderUserNav();
+                    loadCandidates();
+                } else {
+                    showToast(data.error || 'Registration failed', 'error');
+                }
+            } catch (err) {
+                showToast('Signup request failed', 'error');
+            }
+        }
+
+        // Logout Handler (POST /logout)
+        async function handleLogout() {
+            await fetch('/logout', { method: 'POST' });
+            currentUser = null;
+            renderUserNav();
+            showToast('Logged out successfully');
+        }
+
+        // Admin Candidate Handlers (POST /candidates, PUT /candidates/:id, DELETE /candidates/:id)
+        function openCandidateModal(editId = null) {
+            document.getElementById('candidate-edit-id').value = editId || '';
+            if (editId) {
+                const cand = candidatesList.find(c => c._id === editId);
+                document.getElementById('candidate-modal-title').innerText = 'Edit Candidate';
+                document.getElementById('candidate-name').value = cand.fullName;
+                document.getElementById('candidate-party').value = cand.party;
+                document.getElementById('candidate-age').value = cand.age;
+            } else {
+                document.getElementById('candidate-modal-title').innerText = 'Add New Candidate';
+                document.getElementById('candidate-name').value = '';
+                document.getElementById('candidate-party').value = '';
+                document.getElementById('candidate-age').value = '';
+            }
+            openModal('candidate-modal');
+        }
+
+        function editCandidate(id) {
+            openCandidateModal(id);
+        }
+
+        async function handleCandidateSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('candidate-edit-id').value;
+            const payload = {
+                fullName: document.getElementById('candidate-name').value,
+                party: document.getElementById('candidate-party').value,
+                age: Number(document.getElementById('candidate-age').value)
+            };
+
+            const url = editId ? `/candidates/${editId}` : '/candidates';
+            const method = editId ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast(editId ? 'Candidate updated!' : 'Candidate added!');
+                    closeModal('candidate-modal');
+                    loadCandidates();
+                    loadVoteCounts();
+                } else {
+                    showToast(data.error || 'Failed to save candidate', 'error');
+                }
+            } catch (err) {
+                showToast('Save candidate request failed', 'error');
+            }
+        }
+
+        async function deleteCandidate(id) {
+            if (!confirm('Are you sure you want to delete this candidate?')) return;
+            try {
+                const res = await fetch(`/candidates/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('Candidate deleted');
+                    loadCandidates();
+                    loadVoteCounts();
+                } else {
+                    const data = await res.json();
+                    showToast(data.error || 'Deletion failed', 'error');
+                }
+            } catch (err) {
+                showToast('Delete request failed', 'error');
+            }
+        }
+
+        // Profile & Password Handlers
+        function openProfileModal() {
+            if (!currentUser) return;
+            const detailsDiv = document.getElementById('profile-details');
+            detailsDiv.innerHTML = `
+                <p><strong>Name:</strong> ${currentUser.fullName}</p>
+                <p><strong>Email:</strong> ${currentUser.email}</p>
+                <p><strong>Role:</strong> ${currentUser.role}</p>
+                <p><strong>Voting Status:</strong> ${currentUser.isVoted ? '<span style="color:var(--accent-emerald);">Voted</span>' : '<span style="color:var(--accent-amber);">Not Voted Yet</span>'}</p>
+            `;
+            openModal('profile-modal');
+        }
+
+        async function handlePasswordChange(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('profile-current-pass').value;
+            const newPassword = document.getElementById('profile-new-pass').value;
+
+            try {
+                const res = await fetch('/profile/password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast('Password changed successfully!');
+                    closeModal('profile-modal');
+                    document.getElementById('profile-current-pass').value = '';
+                    document.getElementById('profile-new-pass').value = '';
+                } else {
+                    showToast(data.error || 'Password update failed', 'error');
+                }
+            } catch (err) {
+                showToast('Password change request failed', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

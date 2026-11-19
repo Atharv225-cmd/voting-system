@@ -1,0 +1,24 @@
+{
+  "name": "project-05-voting-website",
+  "version": "1.0.0",
+  "description": "this is just a voting app which helps me to understand node ",
+  "license": "ISC",
+  "author": "Atharv changlerkar",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
